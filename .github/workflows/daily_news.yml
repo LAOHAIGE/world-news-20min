@@ -1,0 +1,39 @@
+name: Daily News Generator
+
+on:
+  schedule:
+    # 每天北京时间早上 6:00 运行 (UTC时间 22:00)
+    - cron: '0 22 * * *'
+  workflow_dispatch: # 允许你手动点击按钮运行测试
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 必须有写入权限
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install requests openai
+
+      - name: Run Generator Script
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          NEWS_API_KEY: ${{ secrets.NEWS_API_KEY }}
+        run: python generate_podcast.py
+
+      - name: Commit and Push results
+        run: |
+          git config --global user.name "NewsBot"
+          git config --global user.email "bot@news.com"
+          git add daily_news.mp3 latest_episode.json
+          git commit -m "Update daily news" || echo "No changes"
+          git push
